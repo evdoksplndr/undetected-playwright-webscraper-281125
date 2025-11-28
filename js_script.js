@@ -1,16 +1,13 @@
 (function () {
     'use strict';
 
-    // === 0. Самые ранние патчи — до любого детекта ===
-    // Блокируем devtoolschange событие (pixelscan активно использует)
     const noop = () => {};
     window.addEventListener('devtoolschange', noop, true);
-    window.dispatchEvent(new Event('devtoolschange')); // сбрасываем возможные флаги
+    window.dispatchEvent(new Event('devtoolschange')); 
 
-    // Подмена размеров окна — критично против "is devtoolsopen"
     const realInnerHeight = window.innerHeight;
     Object.defineProperty(window, 'outerHeight', {
-        get: () => realInnerHeight + Math.floor(Math.random() * 80) + 50, // 50–130px как у реального браузера
+        get: () => realInnerHeight + Math.floor(Math.random() * 80) + 50, 
         configurable: false
     });
     Object.defineProperty(window, 'outerWidth', {
@@ -18,7 +15,6 @@
         configurable: false
     });
 
-    // === 1. CDC Cleanup (рекурсивный, безопасный) ===
     const cdc_patterns = [/^(\$cdc_.*)/, /cdc_.*$/, /\$cdc_\$?/];
     function deleteCdc(obj = window, depth = 0) {
         if (depth > 6) return;
@@ -31,7 +27,6 @@
     }
     deleteCdc();
 
-    // === 2. Chrome + CDP полная маскировка ===
     Object.defineProperty(window, 'chrome', {
         value: {
             runtime: undefined,
@@ -44,7 +39,6 @@
         configurable: false
     });
 
-    // Блокируем Runtime и Debugger полностью
     ['Runtime', 'Debugger', 'Inspector', 'Page'].forEach(name => {
         Object.defineProperty(window, name, {
             value: undefined,
@@ -53,7 +47,6 @@
         });
     });
 
-    // === 3. Webdriver ===
     const desc = Object.getOwnPropertyDescriptor(Navigator.prototype, 'webdriver');
     Object.defineProperty(Navigator.prototype, 'webdriver', {
         get: () => undefined,
@@ -63,7 +56,6 @@
         try { delete navigator.__proto__.webdriver; } catch(e) {}
     }
 
-    // === 4. Canvas шум (сильный, но не шаблонный) ===
     const addNoise = (data) => {
         for (let i = 0; i < data.data.length; i += 4) {
             data.data[i] += Math.floor((Math.random() - 0.5) * 6);
@@ -89,15 +81,12 @@
         return origToDataURL.apply(this, args);
     };
 
-    // === 5. Audio шум ===
     const origOsc = AudioContext.prototype.createOscillator;
     AudioContext.prototype.createOscillator = function () {
         const osc = origOsc.call(this);
         osc.frequency.value += (Math.random() - 0.5) * 15;
         return osc;
     };
-
-    // === 6. Plugins + WebGL + Permissions ===
     Object.defineProperty(navigator, 'plugins', {
         get: () => [
             { name: "Chrome PDF Plugin", filename: "mhjfbmdgcfjbbpaeojofohoefgiehjai" },
